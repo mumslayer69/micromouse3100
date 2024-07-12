@@ -7,7 +7,8 @@ namespace mtrn3100 {
 
 class DualEncoder {
 public:
-    DualEncoder(uint8_t enc1, uint8_t enc2,uint8_t enc3, uint8_t enc4) : mot1_int(enc1), mot1_dir(enc2), mot2_int(enc3), mot2_dir(enc4) {
+    DualEncoder(uint8_t enc1, uint8_t enc2,uint8_t enc3, uint8_t enc4, bool reversed_l, bool reversed_r)
+            : mot1_int(enc1), mot1_dir(enc2), mot2_int(enc3), mot2_dir(enc4), reversed_l(reversed_l), reversed_r(reversed_r) {
         instance = this;  // Store the instance pointer
         pinMode(mot1_int, INPUT_PULLUP);
         pinMode(mot1_dir, INPUT_PULLUP);
@@ -25,7 +26,7 @@ public:
     void readLeftEncoder() {
         noInterrupts();
         unsigned long currTime = micros();
-        direction = digitalRead(mot1_dir) ? -1 : 1;
+        direction = (digitalRead(mot1_dir) != reversed_l) ? -1 : 1;
         l_count += direction;
         l_velocity = direction * (1000000.0/counts_per_revolution)/(currTime - l_prev_time);
         l_prev_time = currTime;
@@ -35,7 +36,7 @@ public:
     void readRightEncoder() {
         noInterrupts();
         unsigned long currTime = micros();
-        direction = digitalRead(mot2_dir) ? -1 : 1;
+        direction = (digitalRead(mot2_dir) != reversed_r) ? -1 : 1;
         r_count += direction;
         r_velocity = direction * (1000000.0/counts_per_revolution)/(currTime - r_prev_time);
         r_prev_time = currTime;
@@ -86,6 +87,9 @@ public:
     uint32_t l_prev_time = 0;
     uint32_t r_prev_time = 0;
     bool read = false;
+
+    bool reversed_l = 0;
+    bool reversed_r = 0;
 
 private:
     static DualEncoder* instance;

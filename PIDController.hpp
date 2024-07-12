@@ -6,7 +6,7 @@ namespace mtrn3100 {
 
 class PIDController {
 public:
-    PIDController(float kp, float ki, float kd) : kp(kp), ki(ki), kd(kd) {}
+    PIDController(float kp, float ki, float kd, float max_output) : kp(kp), ki(ki), kd(kd), max_output(max_output) {}
 
     // Compute the output signal required from the current/actual value.
     float compute(float input) {
@@ -25,7 +25,9 @@ public:
 
         prev_error = error;
 
-        return output;
+        // return output;
+        if (abs(output) < max_output) return output;
+        else return (output > 0) ? max_output : -max_output;
     }
 
     // Function used to return the last calculated error. 
@@ -59,6 +61,7 @@ private:
     float prev_error = 0;
     float setpoint = 0;
     float zero_ref = 0;
+    float max_output = 255; // magnitude of maximum signal output, default clamped at 255.
 
     
 };
