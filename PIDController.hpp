@@ -2,6 +2,8 @@
 
 #include <math.h>
 
+#define INTEGRAL_CLAMP_RATIO 0.25 // clamps integral to a proportion of max_value to prevent windup
+
 namespace mtrn3100 {
 
 class PIDController {
@@ -19,6 +21,10 @@ public:
 
         // TODO: IMPLIMENT PID CONTROLLER
         integral = integral + error * dt;
+        // integral clamping
+        if (abs(integral) > (max_output * INTEGRAL_CLAMP_RATIO)) {
+            integral = (integral > 0 ? (max_output * INTEGRAL_CLAMP_RATIO) : (-max_output * INTEGRAL_CLAMP_RATIO));
+        }
         derivative = (error - prev_error) / dt;
 
         output = kp * error + ki * integral + kd * derivative;
@@ -49,6 +55,12 @@ public:
         prev_time = micros();
         zero_ref = zero;
         setpoint = target;
+
+        error = 0;
+        derivative = 0;
+        integral = 0;
+        output = 0;
+        prev_error = 0;
     }
 
 public:

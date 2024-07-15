@@ -3,6 +3,7 @@
 #include "IMUOdometry.hpp"
 #include "PIDController.hpp"
 #include "Motor.hpp"
+#include "Drive.hpp"
 #include "Wire.h"
 #include <MPU6050_light.h>
 #include <VL6180X.h>
@@ -27,20 +28,17 @@ const int lidar3_pin = A2;
 #define MOTOR_R_REVERSED false
 #define WHEEL_RADIUS 16 // in milimetres
 
-#define MAX_OUTPUT 150 // maximum pwm output of each pid controller
+// #define MAX_OUTPUT 150 // maximum pwm output of each pid controller
 
 mtrn3100::DualEncoder encoder(EN_1_A, EN_1_B, EN_2_A, EN_2_B, MOTOR_L_REVERSED, MOTOR_R_REVERSED);
 mtrn3100::EncoderOdometry encoder_odometry(16, 101);  //TASK1 TODO: IDENTIFY THE WHEEL RADIUS AND AXLE LENGTH
 mtrn3100::IMUOdometry IMU_odometry;
-mtrn3100::PIDController controllerL(30, 0, 0, MAX_OUTPUT);
-mtrn3100::PIDController controllerR(30, 0, 0, MAX_OUTPUT);
-mtrn3100::PIDController controllerH(20, 0, 0, MAX_OUTPUT);
+
 mtrn3100::Motor motorL(11, 12, MOTOR_L_REVERSED);
 mtrn3100::Motor motorR(9, 10, MOTOR_R_REVERSED);
+mtrn3100::Drive drive(motorL, motorR, encoder, mpu);
 
-double dist2rot(double distance) {
-    return distance / WHEEL_RADIUS;
-}
+unsigned long timer = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -85,78 +83,74 @@ void setup() {
     lidar3.setAddress(0x58);
 
 
-  // //Set up the IMU
-  // byte status = mpu.begin();
-  // Serial.print(F("MPU6050 status: "));
-  // Serial.println(status);
-  // while(status!=0){ } // stop everything if could not connect to MPU6050
+    //Set up the IMU
+    byte status = mpu.begin();
+    Serial.print(F("MPU6050 status: "));
+    Serial.println(status);
+    while(status!=0){ } // stop everything if could not connect to MPU6050
 
-  // Serial.println(F("Calculating offsets, do not move MPU6050"));
-  // delay(1000);
-  // mpu.calcOffsets(true,true);
-  // Serial.println("Done!\n");
-  controllerL.zeroAndSetTarget(0.0, 62.5);
-  controllerR.zeroAndSetTarget(0.0, 62.5);
-  controllerH.zeroAndSetTarget(-encoder.getLeftRotation() + encoder.getRightRotation(), 0.0);
+    Serial.println(F("Calculating offsets, do not move MPU6050"));
+    delay(500);
+    mpu.calcOffsets(true,true);
+    Serial.println("Done!\n");
 
 
-  // 1 sec delay before moving
-  delay(1000);
+    // // Initialise PID Controllers
+    // controllerL.zeroAndSetTarget(0.0, 62.5);
+    // controllerR.zeroAndSetTarget(0.0, 62.5);
+    // controllerH.zeroAndSetTarget(-encoder.getLeftRotation() + encoder.getRightRotation(), 0.0);
 }
 
 
 void loop() {
-    Serial.print(lidar1.readRangeSingleMillimeters());
-    Serial.print(" | ");
-    Serial.print(lidar2.readRangeSingleMillimeters());
-    Serial.print(" | ");
-    Serial.print(lidar3.readRangeSingleMillimeters());
-    Serial.println();
-    if (lidar1.timeoutOccurred()) { Serial.print("Sensor 1 TIMEOUT"); }
-    if (lidar2.timeoutOccurred()) { Serial.print("Sensor 2 TIMEOUT"); }
-    if (lidar3.timeoutOccurred()) { Serial.print("Sensor 3 TIMEOUT"); } 
+    drive.rotate(-90);
+    delay(1000);
+    // if ((millis() - timer) > 50) {
+    //     Serial.print("IMU Heading: ");
+    //     Serial.print(mpu.getAngleZ());
+    //     Serial.print("\t\t");
+    //     Serial.print(lidar1.readRangeSingleMillimeters());
+    //     Serial.print(" | ");
+    //     Serial.print(lidar2.readRangeSingleMillimeters());
+    //     Serial.print(" | ");
+    //     Serial.print(lidar3.readRangeSingleMillimeters());
+    //     Serial.println();
+    //     if (lidar1.timeoutOccurred()) { Serial.print("Sensor 1 TIMEOUT"); }
+    //     if (lidar2.timeoutOccurred()) { Serial.print("Sensor 2 TIMEOUT"); }
+    //     if (lidar3.timeoutOccurred()) { Serial.print("Sensor 3 TIMEOUT"); }
+        
+    //     timer = millis();
+    // }
 
-    double wallAdjustment = (lidar3.readRangeSingleMillimeters() - 70.0) / 20.0;
+    // double wallAdjustment = (lidar3.readRangeSingleMillimeters() - 70.0) / 20.0;
 
-    int adjustment = controllerH.compute(encoder.getRightRotation() - encoder.getLeftRotation() + wallAdjustment);
-    motorL.setPWM(controllerL.compute(encoder.getLeftRotation()) - adjustment);   // - adjustment
-    motorR.setPWM(controllerR.compute(encoder.getRightRotation()) + adjustment);  //  + adjustment
-    // motorL.setPWM(-100);
-    // motorR.setPWM(100);
-    // encoder_odometry.update(encoder.getLeftRotation(),encoder.getRightRotation());
+    // int adjustment = controllerH.compute(encoder.getRightRotation() - encoder.getLeftRotation() + wallAdjustment);
+    // motorL.setPWM(controllerL.compute(encoder.getLeftRotation()) - adjustment);   // - adjustment
+    // motorR.setPWM(controllerR.compute(encoder.getRightRotation()) + adjustment);  //  + adjustment
+    // // motorL.setPWM(-100);
+    // // motorR.setPWM(100);
+    // // encoder_odometry.update(encoder.getLeftRotation(),encoder.getRightRotation());
+    // delay(10);
 
-//   Serial.print("Left Encoder:\t\t");
-//   Serial.print(encoder.getLeftRotation());
-//   Serial.print(",\t\t");
-//   Serial.print(controllerL.getError());
-//   Serial.print(",\t\t");
-//   Serial.print("Right Encoder:\t\t");
-//   Serial.print(encoder.getRightRotation());
-//   Serial.print(",\t\t");
-//   Serial.print(controllerR.getError());
-//   Serial.print(",\t\t");
-//   Serial.print("Difference:\t\t");
-//   Serial.print(adjustment);
-//   Serial.print(",\t\t");
-//   Serial.println();
-    delay(50);
 
-  // Serial.print("Encoders:\t\t");
-  // Serial.print(encoder.getLeftRotation());
-  // Serial.print(",\t\t");
-  // Serial.print(encoder.getRightRotation());
-  // Serial.print(",\t\t");
-  // Serial.print("ODOM:\t\t");
-  // Serial.print(encoder_odometry.getX());
-  // Serial.print(",\t\t");
-  // Serial.print(encoder_odometry.getY());
-  // Serial.print(",\t\t");
-  // Serial.print(encoder_odometry.getH());
-  // Serial.println();
 
-  // Serial.print("ODOM:\t\t");
-  // Serial.print(IMU_odometry.getX());
-  // Serial.print(",\t\t");
-  // Serial.print(IMU_odometry.getY());
-  // Serial.println();
+
+    // Serial.print("Encoders:\t\t");
+    // Serial.print(encoder.getLeftRotation());
+    // Serial.print(",\t\t");
+    // Serial.print(encoder.getRightRotation());
+    // Serial.print(",\t\t");
+    // Serial.print("ODOM:\t\t");
+    // Serial.print(encoder_odometry.getX());
+    // Serial.print(",\t\t");
+    // Serial.print(encoder_odometry.getY());
+    // Serial.print(",\t\t");
+    // Serial.print(encoder_odometry.getH());
+    // Serial.println();
+
+    // Serial.print("ODOM:\t\t");
+    // Serial.print(IMU_odometry.getX());
+    // Serial.print(",\t\t");
+    // Serial.print(IMU_odometry.getY());
+    // Serial.println();
 }

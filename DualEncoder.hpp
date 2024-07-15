@@ -25,6 +25,7 @@ public:
     // Encoder function used to update the encoder
     void readLeftEncoder() {
         noInterrupts();
+        // Serial.println("left encoder triggered");
         unsigned long currTime = micros();
         direction = (digitalRead(mot1_dir) != reversed_l) ? -1 : 1;
         l_count += direction;
@@ -35,6 +36,7 @@ public:
     
     void readRightEncoder() {
         noInterrupts();
+        // Serial.println("right encoder triggered");
         unsigned long currTime = micros();
         direction = (digitalRead(mot2_dir) != reversed_r) ? -1 : 1;
         r_count += direction;
