@@ -39,6 +39,7 @@ mtrn3100::Motor motorR(9, 10, MOTOR_R_REVERSED);
 mtrn3100::Drive drive(motorL, motorR, encoder, mpu);
 
 unsigned long timer = 0;
+bool c_cmd = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -103,8 +104,13 @@ void setup() {
 
 
 void loop() {
-    drive.rotate(-90);
-    delay(1000);
+    if (!c_cmd) { //ini on line 42
+      drive.chain_move("frflflfflflfrf");
+      c_cmd = 1;
+    }
+
+    delay(1000); 
+
     // if ((millis() - timer) > 50) {
     //     Serial.print("IMU Heading: ");
     //     Serial.print(mpu.getAngleZ());

@@ -4,8 +4,6 @@
 // the dual encoder object "encoder",
 // and all the PID controllers to be tuned.
 
-// Written by Jay (Huan Jie) Choo z5367538
-
 #pragma once
 
 #include <Arduino.h>
@@ -119,6 +117,44 @@ namespace mtrn3100 {
         //         if (controllerLRot.getError() < ERROR_MARGIN_ROT && controllerRRot.getError() < ERROR_MARGIN_ROT) break;
         //     }
         // }
+        
+        void chain_move(String cmd) {
+            String simplified_cmd = "";
+            int repeat_count[cmd.length()] = {0};
+            int count_index = 0;
+
+            // Simplify the input command and create the repeat count array
+            for (int i = 0; i < cmd.length(); i++) {
+                char action = cmd.charAt(i);
+                if (simplified_cmd.length() == 0 || action != simplified_cmd.charAt(simplified_cmd.length() - 1)) {
+                    simplified_cmd += action;
+                    repeat_count[count_index++] = 1;
+                } else {
+                    repeat_count[count_index - 1]++;
+                }
+        
+            }
+
+            // Execute the commands based on the simplified command and repeat count array
+            for (int i = 0; i < simplified_cmd.length(); i++) {
+                char action = simplified_cmd.charAt(i);
+                int repeat = repeat_count[i];
+                switch (action) {
+                case 'f':
+                    straight(250 * repeat);
+                    break;
+                case 'l':
+                    rotate(90 * repeat);
+                    break;
+                case 'r':
+                    rotate(-90 * repeat);
+                    break;
+                }
+                if (i < simplified_cmd.length() - 1) {
+                    delay(1000); 
+                }
+            }
+        }
 
     private:
         double dist2rot(double distance) {
