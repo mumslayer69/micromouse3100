@@ -12,17 +12,28 @@
 #include "PIDController.hpp"
 #include "DualEncoder.hpp"
 #include <MPU6050_light.h>
+#include <VL6180X.h>
 
-#define WHEEL_RADIUS 16.0   // wheel radius of robot
-#define ROBOT_RADIUS 52.8     // axle radius of robot
+// robot dimensions
+#define WHEEL_RADIUS 16.0       // wheel radius of robot
+#define ROBOT_RADIUS 52.8       // axle radius of robot
+
+// PID stats
 #define ERROR_MARGIN_STR 0.2    // stop controllers when wheel rotation error is reduced to ERROR_MARGIN radians
 #define ERROR_MARGIN_ROT 1.2
-#define MAX_OUTPUT 150      // maximum pwm output of each pid controller
+#define MAX_OUTPUT 150          // maximum pwm output of each pid controller
+
+// cell dimensions
+#define CELL_LENGTH 245     // distance between centres of cells
+#define LIDAR_AVERAGE 84    // what the lidars should measure when the robot is centered in the cell
 
 // TUNE PID CONTROLLERS HERE
-mtrn3100::PIDController controllerL(90, 0, 3, MAX_OUTPUT);
-mtrn3100::PIDController controllerR(90, 0, 3, MAX_OUTPUT);
+mtrn3100::PIDController controllerL(90, 0, 2.5, MAX_OUTPUT);
+mtrn3100::PIDController controllerR(90, 0, 2.5, MAX_OUTPUT);
 mtrn3100::PIDController controllerH(25, 0, 0, MAX_OUTPUT);
+
+mtrn3100::PIDController controllerLidar(25, 0, 3, MAX_OUTPUT);
+mtrn3100::PIDController controllerIMU(9, 0, 0.035, MAX_OUTPUT);
 
 mtrn3100::PIDController controllerLRot(9, 0, 0.035, MAX_OUTPUT);
 mtrn3100::PIDController controllerRRot(9, 0, 0.035, MAX_OUTPUT);
@@ -30,15 +41,15 @@ mtrn3100::PIDController controllerRRot(9, 0, 0.035, MAX_OUTPUT);
 namespace mtrn3100 {
     class Drive {
     public:
-        Drive(mtrn3100::Motor motorL, mtrn3100::Motor motorR, mtrn3100::DualEncoder& encoder, MPU6050& mpu)
-            : motorL(motorL), motorR(motorR), encoder(encoder), mpu(mpu) {
+        Drive(mtrn3100::Motor motorL, mtrn3100::Motor motorR, mtrn3100::DualEncoder& encoder, MPU6050& mpu, VL6180X& lidar1, VL6180X& lidar2, VL6180X& lidar3)
+            : motorL(motorL), motorR(motorR), encoder(encoder), mpu(mpu), lidar1(lidar1), lidar2(lidar2), lidar3(lidar3) {
         }
 
-        // drive straight for a specified distance in mm, only using encoders and PID.
-        straight(double distance) {
+        // drive straight for a specified number of cells, only using encoders and PID.
+        straightLidarless(double cells) {
             gyroOffset = mpu.getAngleZ();
-            controllerL.zeroAndSetTarget(encoder.getLeftRotation(), dist2rot(distance));
-            controllerR.zeroAndSetTarget(encoder.getRightRotation(), dist2rot(distance));
+            controllerL.zeroAndSetTarget(encoder.getLeftRotation(), dist2rot(cells * CELL_LENGTH));
+            controllerR.zeroAndSetTarget(encoder.getRightRotation(), dist2rot(cells * CELL_LENGTH));
             controllerH.zeroAndSetTarget(encoder.getRightRotation() - encoder.getLeftRotation(), 0.0);
 
             while (true) {
@@ -63,23 +74,71 @@ namespace mtrn3100 {
             motorR.setPWM(0);
         }
 
+        // drive straight for a specified number of cells, using left and right LIDARs to centre the robot.
+        straight(double cells) {
+            gyroOffset = mpu.getAngleZ();
+            controllerL.zeroAndSetTarget(encoder.getLeftRotation(), dist2rot(cells * CELL_LENGTH));
+            controllerR.zeroAndSetTarget(encoder.getRightRotation(), dist2rot(cells * CELL_LENGTH));
+            controllerLidar.zeroAndSetTarget(0, 0.0);
+
+            unsigned long timer = 0;
+
+            while (true) {
+                mpu.update();
+
+                int leftWallDist = lidar1.readRangeSingleMillimeters();
+                int rightWallDist = lidar3.readRangeSingleMillimeters();
+
+                // 4 conditions. LR, L, R and no walls (driving blind).
+                // When driving with walls, use wall to calibrate IMU heading.
+                // If lidar output > 100 mm, indicates no wall.
+                int adjustment;
+
+                // walls on both sides
+                if (leftWallDist < 100 && rightWallDist < 100) {
+                    controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
+                    adjustment = controllerLidar.compute((rightWallDist - leftWallDist)/2 * 0.04);
+                }
+                // wall only on LEFT
+                else if (leftWallDist < 100) {
+                    controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
+                    adjustment = controllerLidar.compute((LIDAR_AVERAGE - leftWallDist) * 0.04);
+                }
+                // wall only on RIGHT
+                else if (rightWallDist < 100) {
+                    controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
+                    adjustment = controllerLidar.compute((rightWallDist - LIDAR_AVERAGE) * 0.04);
+                }
+                // no wall
+                else {
+                    controllerLidar.zeroAndSetTarget(0, 0.0);
+                    adjustment = controllerIMU.compute(mpu.getAngleZ());
+                }
+
+                // int adjustment = controllerH.compute(encoder.getRightRotation() - encoder.getLeftRotation()); // find diff. in rotation between left and right wheel
+                motorL.setPWM(controllerL.compute(encoder.getLeftRotation()) - adjustment);   // - adjustment
+                motorR.setPWM(controllerR.compute(encoder.getRightRotation()) + adjustment);  //  + adjustment
+                // encoder_odometry.update(encoder.getLeftRotation(),encoder.getRightRotation());
+                
+                delay(50);
+
+                if (abs(controllerL.getError()) < ERROR_MARGIN_STR || abs(controllerR.getError()) < ERROR_MARGIN_STR) break;
+                if (lidar2.readRangeSingleMillimeters() < LIDAR_AVERAGE) break;
+            }
+            // Serial.println("target reached!");
+            motorL.setPWM(0);
+            motorR.setPWM(0);
+        }
+
         // 0 radius turn using the IMU.
         rotate(double angle) {
             mpu.update();
-            
-            // we want to rotate until (mpu.getAngleZ() - gyroOffset) == angle
-            // more accurately, abs((mpu.getAngleZ() - gyroOffset) - angle) < ERROR_MARGIN
-            // gyroOffset = mpu.getAngleZ();
 
             controllerLRot.zeroAndSetTarget(mpu.getAngleZ(), angle);
             controllerRRot.zeroAndSetTarget(mpu.getAngleZ(), angle);
 
             while (true) {
                 mpu.update();
-                // double currentAngle = mpu.getAngleZ() - gyroOffset;
-
-                // motorL.setPWM(currentAngle - angle);
-                // motorR.setPWM(angle - currentAngle);
 
                 motorL.setPWM(-controllerLRot.compute(mpu.getAngleZ()));
                 motorR.setPWM(controllerRRot.compute(mpu.getAngleZ()));
@@ -88,14 +147,14 @@ namespace mtrn3100 {
                 // Serial.println(controllerR.getError());
                 delay(50);
 
-                if (abs(controllerLRot.getError()) < ERROR_MARGIN_ROT && abs(controllerRRot.getError()) < ERROR_MARGIN_ROT) break;
+                if (abs(controllerLRot.getError()) < ERROR_MARGIN_ROT || abs(controllerRRot.getError()) < ERROR_MARGIN_ROT) break;
             }
             motorL.setPWM(0);
             motorR.setPWM(0);
         }
 
         // rotates ACW the specified angle in degrees. If angle is negative, rotates CW.
-        // rotate(double angle) {
+        // rotateEncoder(double angle) {
         //     gyroOffset = mpu.getAngleZ();
 
         //     double angleRad = angle * PI / 180;
@@ -141,7 +200,7 @@ namespace mtrn3100 {
                 int repeat = repeat_count[i];
                 switch (action) {
                 case 'f':
-                    straight(250 * repeat);
+                    straight(repeat);
                     break;
                 case 'l':
                     rotate(90 * repeat);
@@ -151,7 +210,7 @@ namespace mtrn3100 {
                     break;
                 }
                 if (i < simplified_cmd.length() - 1) {
-                    delay(1000); 
+                    delay(600); 
                 }
             }
         }
@@ -163,6 +222,9 @@ namespace mtrn3100 {
 
         mtrn3100::Motor motorL, motorR;
         mtrn3100::DualEncoder& encoder;
+        VL6180X& lidar1;
+        VL6180X& lidar2;
+        VL6180X& lidar3;
         MPU6050& mpu;
         double gyroOffset = 0.0;
     };

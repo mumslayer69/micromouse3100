@@ -36,7 +36,7 @@ mtrn3100::IMUOdometry IMU_odometry;
 
 mtrn3100::Motor motorL(11, 12, MOTOR_L_REVERSED);
 mtrn3100::Motor motorR(9, 10, MOTOR_R_REVERSED);
-mtrn3100::Drive drive(motorL, motorR, encoder, mpu);
+mtrn3100::Drive drive(motorL, motorR, encoder, mpu, lidar1, lidar2, lidar3);
 
 unsigned long timer = 0;
 bool c_cmd = 0;
@@ -94,19 +94,16 @@ void setup() {
     delay(500);
     mpu.calcOffsets(true,true);
     Serial.println("Done!\n");
-
-
-    // // Initialise PID Controllers
-    // controllerL.zeroAndSetTarget(0.0, 62.5);
-    // controllerR.zeroAndSetTarget(0.0, 62.5);
-    // controllerH.zeroAndSetTarget(-encoder.getLeftRotation() + encoder.getRightRotation(), 0.0);
 }
 
 
 void loop() {
+    // drive.straight(5);
+
     if (!c_cmd) { //ini on line 42
-      drive.chain_move("frflflfflflfrf");
-      c_cmd = 1;
+            // drive.straight(4);
+            drive.chain_move("flflffrfrflflfrf");
+        c_cmd = 1;
     }
 
     delay(1000); 
