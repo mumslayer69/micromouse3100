@@ -1,3 +1,4 @@
+#include "Display.hpp"
 #include "DualEncoder.hpp"
 #include "EncoderOdometry.hpp"
 #include "IMUOdometry.hpp"
@@ -7,6 +8,14 @@
 #include "Wire.h"
 #include <MPU6050_light.h>
 #include <VL6180X.h>
+#include <Adafruit_SSD1306.h>
+
+// #defines for the display module
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 8
+#define OLED_RESET     -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+mtrn3100::Display myDisplay(display); // use this library to print easily
 
 MPU6050 mpu(Wire);
 VL6180X lidar1;
@@ -26,7 +35,7 @@ const int lidar3_pin = A2;
 // such that a positive rotation on both motors drives the robot forwards
 #define MOTOR_L_REVERSED true
 #define MOTOR_R_REVERSED false
-#define WHEEL_RADIUS 16 // in milimetres
+#define WHEEL_RADIUS 8 // in milimetres
 
 // #define MAX_OUTPUT 150 // maximum pwm output of each pid controller
 
@@ -74,7 +83,7 @@ void setup() {
     lidar2.setTimeout(250);
     lidar2.setAddress(0x56);
 
-        // ENABLE THIRD SENSOR AND CHANGE THE ADDRESS 
+    // ENABLE THIRD SENSOR AND CHANGE THE ADDRESS 
     // NOTE: WE DO NOT HAVE TO DISABLE THE SECOND SENSOR AS IT IS NOW ON A DIFFERENT ADDRESS 
     digitalWrite(lidar3_pin, HIGH);
     delay(50);
@@ -94,19 +103,26 @@ void setup() {
     delay(500);
     mpu.calcOffsets(true,true);
     Serial.println("Done!\n");
+
+
+    // Set up the display using library functions
+    myDisplay.initialise();
 }
 
-
+uint32_t variable = -50;
 void loop() {
-    drive.rotate(90);
+    // char buffer [20];
+    // drive.rotate(90);
+
+    myDisplay.print(variable, 69, variable);
 
     // if (!c_cmd) { //ini on line 42
     //         // drive.straight(4);
     //         // drive.chain_move("flflffrfrflflfrf");
     //     c_cmd = 1;
     // }
-
-    delay(800); 
+    variable = variable + 1;
+    delay(5); 
 
     // if ((millis() - timer) > 50) {
     //     Serial.print("IMU Heading: ");
