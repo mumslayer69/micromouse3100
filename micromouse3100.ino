@@ -98,15 +98,15 @@ void setup() {
 
 
 void loop() {
-    // drive.straight(5);
+    drive.rotate(90);
 
-    if (!c_cmd) { //ini on line 42
-            // drive.straight(4);
-            drive.chain_move("flflffrfrflflfrf");
-        c_cmd = 1;
-    }
+    // if (!c_cmd) { //ini on line 42
+    //         // drive.straight(4);
+    //         // drive.chain_move("flflffrfrflflfrf");
+    //     c_cmd = 1;
+    // }
 
-    delay(1000); 
+    delay(800); 
 
     // if ((millis() - timer) > 50) {
     //     Serial.print("IMU Heading: ");

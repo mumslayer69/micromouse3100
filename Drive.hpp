@@ -30,7 +30,7 @@
 // TUNE PID CONTROLLERS HERE
 mtrn3100::PIDController controllerL(90, 0, 2.5, MAX_OUTPUT);
 mtrn3100::PIDController controllerR(90, 0, 2.5, MAX_OUTPUT);
-mtrn3100::PIDController controllerH(25, 0, 0, MAX_OUTPUT);
+mtrn3100::PIDController controllerH(50, 0, 0, MAX_OUTPUT);
 
 mtrn3100::PIDController controllerLidar(25, 0, 3, MAX_OUTPUT);
 mtrn3100::PIDController controllerIMU(9, 0, 0.035, MAX_OUTPUT);
@@ -47,7 +47,6 @@ namespace mtrn3100 {
 
         // drive straight for a specified number of cells, only using encoders and PID.
         straightLidarless(double cells) {
-            gyroOffset = mpu.getAngleZ();
             controllerL.zeroAndSetTarget(encoder.getLeftRotation(), dist2rot(cells * CELL_LENGTH));
             controllerR.zeroAndSetTarget(encoder.getRightRotation(), dist2rot(cells * CELL_LENGTH));
             controllerH.zeroAndSetTarget(encoder.getRightRotation() - encoder.getLeftRotation(), 0.0);
@@ -76,7 +75,6 @@ namespace mtrn3100 {
 
         // drive straight for a specified number of cells, using left and right LIDARs to centre the robot.
         straight(double cells) {
-            gyroOffset = mpu.getAngleZ();
             controllerL.zeroAndSetTarget(encoder.getLeftRotation(), dist2rot(cells * CELL_LENGTH));
             controllerR.zeroAndSetTarget(encoder.getRightRotation(), dist2rot(cells * CELL_LENGTH));
             controllerLidar.zeroAndSetTarget(0, 0.0);
@@ -136,12 +134,16 @@ namespace mtrn3100 {
 
             controllerLRot.zeroAndSetTarget(mpu.getAngleZ(), angle);
             controllerRRot.zeroAndSetTarget(mpu.getAngleZ(), angle);
+            controllerH.zeroAndSetTarget(encoder.getLeftRotation() + encoder.getRightRotation(), 0.0);
 
             while (true) {
                 mpu.update();
 
-                motorL.setPWM(-controllerLRot.compute(mpu.getAngleZ()));
-                motorR.setPWM(controllerRRot.compute(mpu.getAngleZ()));
+                // if value increases, wheels are forward biased (forward turning wheel is stronger). Adjustment will then be negative.
+                int adjustment = controllerH.compute(encoder.getRightRotation() + encoder.getLeftRotation());
+
+                motorL.setPWM(-controllerLRot.compute(mpu.getAngleZ()) + adjustment);
+                motorR.setPWM(controllerRRot.compute(mpu.getAngleZ()) + adjustment);
 
                 Serial.println(controllerLRot.getError());
                 // Serial.println(controllerR.getError());
@@ -155,7 +157,6 @@ namespace mtrn3100 {
 
         // rotates ACW the specified angle in degrees. If angle is negative, rotates CW.
         // rotateEncoder(double angle) {
-        //     gyroOffset = mpu.getAngleZ();
 
         //     double angleRad = angle * PI / 180;
         //     double wheelRotation = angleRad * ROBOT_RADIUS / WHEEL_RADIUS;
@@ -226,6 +227,5 @@ namespace mtrn3100 {
         VL6180X& lidar2;
         VL6180X& lidar3;
         MPU6050& mpu;
-        double gyroOffset = 0.0;
     };
 }
