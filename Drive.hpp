@@ -22,7 +22,7 @@
 // PID stats
 #define ERROR_MARGIN_STR 0.2    // stop controllers when wheel rotation error is reduced to ERROR_MARGIN radians
 #define ERROR_MARGIN_ROT 1.2
-#define MAX_OUTPUT 120          // maximum pwm output of each pid controller
+#define MAX_OUTPUT 135          // maximum pwm output of each pid controller
 
 // cell dimensions
 #define CELL_LENGTH 245     // distance between centres of cells
@@ -35,7 +35,7 @@ mtrn3100::PIDController controllerL(90, 0, 2.5, MAX_OUTPUT);
 mtrn3100::PIDController controllerR(90, 0, 2.5, MAX_OUTPUT);
 mtrn3100::PIDController controllerH(50, 0, 0, MAX_OUTPUT);
 
-mtrn3100::PIDController controllerLidar(25, 0, 3, MAX_OUTPUT);
+mtrn3100::PIDController controllerLidar(25, 0, 4, MAX_OUTPUT);
 mtrn3100::PIDController controllerIMU(9, 0, 0.035, MAX_OUTPUT);
 
 mtrn3100::PIDController controllerLRot(9, 0, 0.035, MAX_OUTPUT);
@@ -147,6 +147,7 @@ namespace mtrn3100 {
             controllerRRot.zeroAndSetTarget(mpu.getAngleZ(), angle);
             controllerH.zeroAndSetTarget(encoder.getLeftRotation() + encoder.getRightRotation(), 0.0);
 
+            display.print("SPEEN");
             while (true) {
                 mpu.update();
 
@@ -159,10 +160,10 @@ namespace mtrn3100 {
                 Serial.println(controllerLRot.getError());
                 // Serial.println(controllerR.getError());
 
-                int leftWallDist = lidar1.readRangeSingleMillimeters();
-                int frontWallDist = lidar2.readRangeSingleMillimeters();
-                int rightWallDist = lidar3.readRangeSingleMillimeters();
-                display.print(leftWallDist, frontWallDist, rightWallDist);
+                // int leftWallDist = lidar1.readRangeSingleMillimeters();
+                // int frontWallDist = lidar2.readRangeSingleMillimeters();
+                // int rightWallDist = lidar3.readRangeSingleMillimeters();
+                // display.print(leftWallDist, frontWallDist, rightWallDist);
 
                 delay(50);
 

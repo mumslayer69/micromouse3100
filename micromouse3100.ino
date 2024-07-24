@@ -1,7 +1,5 @@
 #include "Display.hpp"
 #include "DualEncoder.hpp"
-#include "EncoderOdometry.hpp"
-#include "IMUOdometry.hpp"
 #include "PIDController.hpp"
 #include "Motor.hpp"
 #include "Drive.hpp"
@@ -40,8 +38,6 @@ const int lidar3_pin = A2;
 // #define MAX_OUTPUT 150 // maximum pwm output of each pid controller
 
 mtrn3100::DualEncoder encoder(EN_1_A, EN_1_B, EN_2_A, EN_2_B, MOTOR_L_REVERSED, MOTOR_R_REVERSED);
-mtrn3100::EncoderOdometry encoder_odometry(16, 101);  //TASK1 TODO: IDENTIFY THE WHEEL RADIUS AND AXLE LENGTH
-mtrn3100::IMUOdometry IMU_odometry;
 
 mtrn3100::Motor motorL(11, 12, MOTOR_L_REVERSED);
 mtrn3100::Motor motorR(9, 10, MOTOR_R_REVERSED);
@@ -112,11 +108,12 @@ void setup() {
 void loop() {
 
     if (!c_cmd) { //ini on line 42
-            drive.chain_move("frfflflffrfffrfffflfflfrfrf");
+            drive.chain_move("frfflflffrffffrfffflflfrfrf");
             // drive.rotate(-90);
             // drive.rotate(-90);
             // drive.rotate(90);
             // drive.rotate(90);
+            // drive.straight(4);
         c_cmd = 1;
     }
 
@@ -146,26 +143,4 @@ void loop() {
     // // motorR.setPWM(100);
     // // encoder_odometry.update(encoder.getLeftRotation(),encoder.getRightRotation());
     // delay(10);
-
-
-
-
-    // Serial.print("Encoders:\t\t");
-    // Serial.print(encoder.getLeftRotation());
-    // Serial.print(",\t\t");
-    // Serial.print(encoder.getRightRotation());
-    // Serial.print(",\t\t");
-    // Serial.print("ODOM:\t\t");
-    // Serial.print(encoder_odometry.getX());
-    // Serial.print(",\t\t");
-    // Serial.print(encoder_odometry.getY());
-    // Serial.print(",\t\t");
-    // Serial.print(encoder_odometry.getH());
-    // Serial.println();
-
-    // Serial.print("ODOM:\t\t");
-    // Serial.print(IMU_odometry.getX());
-    // Serial.print(",\t\t");
-    // Serial.print(IMU_odometry.getY());
-    // Serial.println();
 }
