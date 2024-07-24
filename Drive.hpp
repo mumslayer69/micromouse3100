@@ -8,6 +8,7 @@
 
 #include <Arduino.h>
 
+// #include "Display.hpp"
 #include "Motor.hpp"
 #include "PIDController.hpp"
 #include "DualEncoder.hpp"
@@ -21,11 +22,13 @@
 // PID stats
 #define ERROR_MARGIN_STR 0.2    // stop controllers when wheel rotation error is reduced to ERROR_MARGIN radians
 #define ERROR_MARGIN_ROT 1.2
-#define MAX_OUTPUT 150          // maximum pwm output of each pid controller
+#define MAX_OUTPUT 120          // maximum pwm output of each pid controller
 
 // cell dimensions
 #define CELL_LENGTH 245     // distance between centres of cells
-#define LIDAR_AVERAGE 84    // what the lidars should measure when the robot is centered in the cell
+#define LIDAR_AVERAGE 82    // what the lidars should measure when the robot is centered in the cell
+#define FRONT_LIDAR_HALT 90 // halt robot if it gets this close to a front wall
+#define NO_WALL_THRESHOLD 110   // if lidar value is above this, then assume there is no wall
 
 // TUNE PID CONTROLLERS HERE
 mtrn3100::PIDController controllerL(90, 0, 2.5, MAX_OUTPUT);
@@ -41,8 +44,8 @@ mtrn3100::PIDController controllerRRot(9, 0, 0.035, MAX_OUTPUT);
 namespace mtrn3100 {
     class Drive {
     public:
-        Drive(mtrn3100::Motor motorL, mtrn3100::Motor motorR, mtrn3100::DualEncoder& encoder, MPU6050& mpu, VL6180X& lidar1, VL6180X& lidar2, VL6180X& lidar3)
-            : motorL(motorL), motorR(motorR), encoder(encoder), mpu(mpu), lidar1(lidar1), lidar2(lidar2), lidar3(lidar3) {
+        Drive(mtrn3100::Motor motorL, mtrn3100::Motor motorR, mtrn3100::DualEncoder& encoder, MPU6050& mpu, VL6180X& lidar1, VL6180X& lidar2, VL6180X& lidar3, mtrn3100::Display& display)
+            : motorL(motorL), motorR(motorR), encoder(encoder), mpu(mpu), lidar1(lidar1), lidar2(lidar2), lidar3(lidar3), display(display) {
         }
 
         // drive straight for a specified number of cells, only using encoders and PID.
@@ -78,6 +81,7 @@ namespace mtrn3100 {
             controllerL.zeroAndSetTarget(encoder.getLeftRotation(), dist2rot(cells * CELL_LENGTH));
             controllerR.zeroAndSetTarget(encoder.getRightRotation(), dist2rot(cells * CELL_LENGTH));
             controllerLidar.zeroAndSetTarget(0, 0.0);
+            controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
 
             unsigned long timer = 0;
 
@@ -85,6 +89,7 @@ namespace mtrn3100 {
                 mpu.update();
 
                 int leftWallDist = lidar1.readRangeSingleMillimeters();
+                int frontWallDist = lidar2.readRangeSingleMillimeters();
                 int rightWallDist = lidar3.readRangeSingleMillimeters();
 
                 // 4 conditions. LR, L, R and no walls (driving blind).
@@ -93,24 +98,28 @@ namespace mtrn3100 {
                 int adjustment;
 
                 // walls on both sides
-                if (leftWallDist < 100 && rightWallDist < 100) {
+                if (leftWallDist < NO_WALL_THRESHOLD && rightWallDist < NO_WALL_THRESHOLD) {
                     controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
                     adjustment = controllerLidar.compute((rightWallDist - leftWallDist)/2 * 0.04);
+                    // display.print("WW  WW");
                 }
                 // wall only on LEFT
-                else if (leftWallDist < 100) {
+                else if (leftWallDist < NO_WALL_THRESHOLD) {
                     controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
                     adjustment = controllerLidar.compute((LIDAR_AVERAGE - leftWallDist) * 0.04);
+                    // display.print("WW  __");
                 }
                 // wall only on RIGHT
-                else if (rightWallDist < 100) {
+                else if (rightWallDist < NO_WALL_THRESHOLD) {
                     controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
                     adjustment = controllerLidar.compute((rightWallDist - LIDAR_AVERAGE) * 0.04);
+                    // display.print("__  WW");
                 }
                 // no wall
                 else {
                     controllerLidar.zeroAndSetTarget(0, 0.0);
                     adjustment = controllerIMU.compute(mpu.getAngleZ());
+                    // display.print("__  __");
                 }
 
                 // int adjustment = controllerH.compute(encoder.getRightRotation() - encoder.getLeftRotation()); // find diff. in rotation between left and right wheel
@@ -118,10 +127,12 @@ namespace mtrn3100 {
                 motorR.setPWM(controllerR.compute(encoder.getRightRotation()) + adjustment);  //  + adjustment
                 // encoder_odometry.update(encoder.getLeftRotation(),encoder.getRightRotation());
                 
-                delay(50);
+                display.print(leftWallDist, frontWallDist, rightWallDist);
 
                 if (abs(controllerL.getError()) < ERROR_MARGIN_STR || abs(controllerR.getError()) < ERROR_MARGIN_STR) break;
-                if (lidar2.readRangeSingleMillimeters() < LIDAR_AVERAGE) break;
+                if (frontWallDist < FRONT_LIDAR_HALT) break;
+
+                delay(50);
             }
             // Serial.println("target reached!");
             motorL.setPWM(0);
@@ -147,6 +158,12 @@ namespace mtrn3100 {
 
                 Serial.println(controllerLRot.getError());
                 // Serial.println(controllerR.getError());
+
+                int leftWallDist = lidar1.readRangeSingleMillimeters();
+                int frontWallDist = lidar2.readRangeSingleMillimeters();
+                int rightWallDist = lidar3.readRangeSingleMillimeters();
+                display.print(leftWallDist, frontWallDist, rightWallDist);
+
                 delay(50);
 
                 if (abs(controllerLRot.getError()) < ERROR_MARGIN_ROT || abs(controllerRRot.getError()) < ERROR_MARGIN_ROT) break;
@@ -223,9 +240,11 @@ namespace mtrn3100 {
 
         mtrn3100::Motor motorL, motorR;
         mtrn3100::DualEncoder& encoder;
+        mtrn3100::Display& display;
         VL6180X& lidar1;
         VL6180X& lidar2;
         VL6180X& lidar3;
         MPU6050& mpu;
+
     };
 }

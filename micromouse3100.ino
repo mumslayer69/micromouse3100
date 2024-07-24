@@ -12,7 +12,7 @@
 
 // #defines for the display module
 #define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 8
+#define SCREEN_HEIGHT 16
 #define OLED_RESET     -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 mtrn3100::Display myDisplay(display); // use this library to print easily
@@ -45,7 +45,7 @@ mtrn3100::IMUOdometry IMU_odometry;
 
 mtrn3100::Motor motorL(11, 12, MOTOR_L_REVERSED);
 mtrn3100::Motor motorR(9, 10, MOTOR_R_REVERSED);
-mtrn3100::Drive drive(motorL, motorR, encoder, mpu, lidar1, lidar2, lidar3);
+mtrn3100::Drive drive(motorL, motorR, encoder, mpu, lidar1, lidar2, lidar3, myDisplay);
 
 unsigned long timer = 0;
 bool c_cmd = 0;
@@ -109,20 +109,16 @@ void setup() {
     myDisplay.initialise();
 }
 
-uint32_t variable = -50;
 void loop() {
-    // char buffer [20];
-    // drive.rotate(90);
 
-    myDisplay.print(variable, 69, variable);
-
-    // if (!c_cmd) { //ini on line 42
-    //         // drive.straight(4);
-    //         // drive.chain_move("flflffrfrflflfrf");
-    //     c_cmd = 1;
-    // }
-    variable = variable + 1;
-    delay(5); 
+    if (!c_cmd) { //ini on line 42
+            drive.chain_move("frfflflffrfffrfffflfflfrfrf");
+            // drive.rotate(-90);
+            // drive.rotate(-90);
+            // drive.rotate(90);
+            // drive.rotate(90);
+        c_cmd = 1;
+    }
 
     // if ((millis() - timer) > 50) {
     //     Serial.print("IMU Heading: ");

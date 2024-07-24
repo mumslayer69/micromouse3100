@@ -2,7 +2,7 @@
 #include <Adafruit_SSD1306.h>
 
 #define SCREEN_ADDRESS 0x3C
-#define TEXT_SIZE 1
+#define TEXT_SIZE 2
 
 namespace mtrn3100 {
     class Display {
@@ -17,6 +17,15 @@ namespace mtrn3100 {
                 for(;;); // Don't proceed, loop forever
             }
             display.clearDisplay();
+        }
+
+        print(char* string) {
+            display.clearDisplay();
+            display.setTextColor(WHITE);
+            display.setTextSize(TEXT_SIZE);
+            display.setCursor(0,0);
+            display.print(string);
+            display.display();
         }
 
         print(long int value) {
