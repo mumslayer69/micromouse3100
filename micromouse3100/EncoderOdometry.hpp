@@ -8,11 +8,11 @@
 
 
 namespace mtrn3100 {
-class EncoderOdometry {
-public:
-    EncoderOdometry(float radius, float wheelBase) : x(0), y(0), h(0), R(radius), L(wheelBase), lastLPos(0), lastRPos(0) {}
+  class EncoderOdometry {
+    public:
+      EncoderOdometry(float radius, float wheelBase) : x(0), y(0), h(0), R(radius), L(wheelBase), lastLPos(0), lastRPos(0) {}
 
-    void update(float leftValue,float rightValue) {
+      void update(float leftValue,float rightValue) {
         float tL = leftValue - lastLPos; // MAKE SURE THE ENCODER COUNT UP CORRECTLY / ARE NOT THE WRONG DIRECTION 
         float tR = -(rightValue - lastRPos); // MAKE SURE THE ENCODER COUNT UP CORRECTLY / ARE NOT THE WRONG DIRECTION 
 
@@ -23,38 +23,21 @@ public:
         y += dS * sin(h + (dH / 2));
         h += dH;
 
+        if (h > M_PI) h -= (2 * M_PI);
+        else if (h < M_PI) h+= (2 * M_PI);
+
         lastLPos = leftValue;
         lastRPos = rightValue;
+      }
 
-        // float tL = leftValue - lastLPos; // MAKE SURE THE ENCODER COUNT UP CORRECTLY / ARE NOT THE WRONG DIRECTION 
-        // float tR = rightValue - lastRPos; // MAKE SURE THE ENCODER COUNT UP CORRECTLY / ARE NOT THE WRONG DIRECTION 
+      float getX() const { return x; }
+      float getY() const { return y; }
+      float getH() const { return h; }
 
-        // x += 0;
-        // y += 0;
-        // h += 0;
-        
-        // lastLPos = 0; 
-        // lastRPos = 0;
-    }
-
-    void moveToTarget(float targetX, targetY) {
-
-      const float threshold = 5.0
-      const float speed = 1.0 
-
-      
-    }
-
-
-
-    float getX() const { return x; }
-    float getY() const { return y; }
-    float getH() const { return h; }
-
-private:
-    float x, y, h;
-    const float R, L;
-    float lastLPos, lastRPos;
-};
+    private:
+        float x, y, h;
+        const float R, L;
+        float lastLPos, lastRPos;
+  };
 
 }
