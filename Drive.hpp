@@ -234,6 +234,40 @@ namespace mtrn3100 {
             }
         }
 
+        void precise_command(String cmd) {
+          int current_command = 0;
+          while (current_command < cmd.length()) {
+              char action = cmd.charAt(current_command);
+              current_command++;
+
+              // Extract the number following the action
+              String numStr = "";
+              while (current_command < cmd.length() && isDigit(cmd.charAt(current_command))) {
+                  numStr += cmd.charAt(current_command);
+                  current_command++;
+              }
+              
+              int value = numStr.toInt(); // Convert string to integer
+
+              // Execute the commands based on the action and the extracted value
+              switch (action) {
+                  case 'f':
+                      straight(value);
+                      break;
+                  case 'l':
+                      rotate(value);
+                      break;
+                  case 'r':
+                      rotate(-value);
+                      break;
+              }
+              
+              if (current_command < cmd.length()) {
+                  delay(600); // Delay between commands
+              }
+          }
+        }
+
     private:
         double dist2rot(double distance) {
             return distance / WHEEL_RADIUS;
