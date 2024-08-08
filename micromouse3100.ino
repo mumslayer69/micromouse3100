@@ -47,6 +47,7 @@ unsigned long timer = 0;
 bool c_cmd = 0;
 
 void setup() {
+
   Serial.begin(115200);
   Wire.begin();
 
@@ -114,6 +115,24 @@ void loop() {
             // drive.rotate(90);
             // drive.rotate(90);
             // drive.straight(4);
+<<<<<<< Updated upstream:micromouse3100.ino
+=======
+
+            // Serial.print("Distance traveled: ");
+            // Serial.println(drive.getOdometry().getCurrentTotalDistance());
+            // Serial.print("Heading: ");
+            // Serial.println(drive.getOdometry().getCurrentHeading());
+
+            // drive.rotate(90); // Rotate by 90 degrees
+            // Serial.print("Heading after rotation: ");
+            // Serial.println(drive.getOdometry().getCurrentHeading());
+
+            // drive.straight(250.0); // Move another cell
+            // Serial.print("Distance traveled: ");
+            // Serial.println(drive.getOdometry().getCurrentTotalDistance());
+            // Serial.print("Heading: ");
+            // Serial.println(drive.getOdometry().getCurrentHeading());
+>>>>>>> Stashed changes:micromouse3100/micromouse3100.ino
         c_cmd = 1;
     }
 
