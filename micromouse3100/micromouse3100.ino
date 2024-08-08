@@ -47,6 +47,7 @@ unsigned long timer = 0;
 bool c_cmd = 0;
 
 void setup() {
+
   Serial.begin(115200);
   Wire.begin();
 
