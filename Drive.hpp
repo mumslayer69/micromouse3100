@@ -12,7 +12,6 @@
 #include "Motor.hpp"
 #include "PIDController.hpp"
 #include "DualEncoder.hpp"
-#include "EncoderOdometry.hpp"
 #include <MPU6050_light.h>
 #include <VL6180X.h>
 
@@ -26,7 +25,7 @@
 #define MAX_OUTPUT 135  // maximum pwm output of each pid controller
 
 // cell dimensions
-#define CELL_LENGTH 245        // distance between centres of cells
+#define CELL_LENGTH 245.0      // distance between centres of cells
 #define LIDAR_AVERAGE 82       // what the lidars should measure when the robot is centered in the cell
 #define FRONT_LIDAR_HALT 90    // halt robot if it gets this close to a front wall
 #define NO_WALL_THRESHOLD 110  // if lidar value is above this, then assume there is no wall
@@ -273,38 +272,38 @@ public:
   void precise_command(String cmd) {
     int current_command = 0;
     while (current_command < cmd.length()) {
-      char action = cmd.charAt(current_command);
-      current_command++;
+    char action = cmd.charAt(current_command);
+    current_command++;
 
-      // Extract the number following the action
-      String numStr = "";
-      while (current_command < cmd.length() && isDigit(cmd.charAt(current_command))) {
+    // Extract the number following the action
+    String numStr = "";
+    while (current_command < cmd.length() && isDigit(cmd.charAt(current_command))) {
         numStr += cmd.charAt(current_command);
         current_command++;
-      }
-      
-      int value = numStr.toInt(); // Convert string to integer
+    }
+    
+    int value = numStr.toInt(); // Convert string to integer
 
-      // Execute the commands based on the action and the extracted value
-      switch (action) {
+    // Execute the commands based on the action and the extracted value
+    switch (action) {
         case 'f':
-          straight(value);
-          display.print("Forward: ");
-          break;
+        straightLidarless(value / CELL_LENGTH);
+        display.print("Forward: ");
+        break;
         case 'l':
-          rotate(value);
-          display.print("Left: ");
-          break;
+        rotate(value);
+        display.print("Left: ");
+        break;
         case 'r':
-          rotate(-value);
-          display.print("Right: ");
-          break;
-      }
-      
-      if (current_command < cmd.length()) {
-        delay(600); // Delay between commands
+        rotate(-value);
+        display.print("Right: ");
+        break;
+    }
+    
+    if (current_command < cmd.length()) {
+        delay(100); // Delay between commands
         display.print("hold");
-      }
+    }
     }
   }
 

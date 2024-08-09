@@ -110,7 +110,7 @@ void loop() {
 
     if (!c_cmd) { //ini on line 42
         // drive.chain_move("frff");
-        drive.precise_command("f250l45f250r45f250r180");
+        drive.precise_command("f23r51f38l8f97r39f102l35f137r37f108r6f271l46f122r34f55l41f96r39f73l24f38r16f32r5f62l28f4");
         // drive.rotate(-90);
         // drive.rotate(-90);
         // drive.rotate(90);
