@@ -289,17 +289,21 @@ public:
       switch (action) {
         case 'f':
           straight(value);
+          display.print("Forward: ");
           break;
         case 'l':
           rotate(value);
+          display.print("Left: ");
           break;
         case 'r':
           rotate(-value);
+          display.print("Right: ");
           break;
       }
       
       if (current_command < cmd.length()) {
         delay(600); // Delay between commands
+        display.print("hold");
       }
     }
   }

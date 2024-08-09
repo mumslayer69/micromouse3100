@@ -109,26 +109,27 @@ void setup() {
 void loop() {
 
     if (!c_cmd) { //ini on line 42
-            drive.chain_move("frff");
+            // drive.chain_move("frff");
+            drive.precise_command("f250l45f250r45f250r180");
             // drive.rotate(-90);
             // drive.rotate(-90);
             // drive.rotate(90);
             // drive.rotate(90);
             // drive.straight(4);
-            Serial.print("Distance traveled: ");
-            Serial.println(drive.getOdometry().getCurrentTotalDistance());
-            Serial.print("Heading: ");
-            Serial.println(drive.getOdometry().getCurrentHeading());
+            // Serial.print("Distance traveled: ");
+            // Serial.println(drive.getOdometry().getCurrentTotalDistance());
+            // Serial.print("Heading: ");
+            // Serial.println(drive.getOdometry().getCurrentHeading());
 
-            drive.rotate(90); // Rotate by 90 degrees
-            Serial.print("Heading after rotation: ");
-            Serial.println(drive.getOdometry().getCurrentHeading());
+            // drive.rotate(90); // Rotate by 90 degrees
+            // Serial.print("Heading after rotation: ");
+            // Serial.println(drive.getOdometry().getCurrentHeading());
 
-            drive.straight(250.0); // Move another cell
-            Serial.print("Distance traveled: ");
-            Serial.println(drive.getOdometry().getCurrentTotalDistance());
-            Serial.print("Heading: ");
-            Serial.println(drive.getOdometry().getCurrentHeading());
+            // drive.straight(250.0); // Move another cell
+            // Serial.print("Distance traveled: ");
+            // Serial.println(drive.getOdometry().getCurrentTotalDistance());
+            // Serial.print("Heading: ");
+            // Serial.println(drive.getOdometry().getCurrentHeading());
         c_cmd = 1;
     }
 
