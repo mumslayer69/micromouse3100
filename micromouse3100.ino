@@ -93,7 +93,7 @@ void setup() {
     //Set up the IMU
     byte status = mpu.begin();
     Serial.print(F("MPU6050 status: "));
-    Serial.println(status);
+    //Serial.println(status);
     while(status!=0){ } // stop everything if could not connect to MPU6050
 
     Serial.println(F("Calculating offsets, do not move MPU6050"));
@@ -109,30 +109,27 @@ void setup() {
 void loop() {
 
     if (!c_cmd) { //ini on line 42
-            drive.chain_move("frfflflffrffffrfffflflfrfrf");
-            // drive.rotate(-90);
-            // drive.rotate(-90);
-            // drive.rotate(90);
-            // drive.rotate(90);
-            // drive.straight(4);
-<<<<<<< Updated upstream:micromouse3100.ino
-=======
+        // drive.chain_move("frff");
+        drive.precise_command("f250l45f250r45f250r180");
+        // drive.rotate(-90);
+        // drive.rotate(-90);
+        // drive.rotate(90);
+        // drive.rotate(90);
+        // drive.straight(4);
+        // Serial.print("Distance traveled: ");
+        // Serial.println(drive.getOdometry().getCurrentTotalDistance());
+        // Serial.print("Heading: ");
+        // Serial.println(drive.getOdometry().getCurrentHeading());
 
-            // Serial.print("Distance traveled: ");
-            // Serial.println(drive.getOdometry().getCurrentTotalDistance());
-            // Serial.print("Heading: ");
-            // Serial.println(drive.getOdometry().getCurrentHeading());
+        // drive.rotate(90); // Rotate by 90 degrees
+        // Serial.print("Heading after rotation: ");
+        // Serial.println(drive.getOdometry().getCurrentHeading());
 
-            // drive.rotate(90); // Rotate by 90 degrees
-            // Serial.print("Heading after rotation: ");
-            // Serial.println(drive.getOdometry().getCurrentHeading());
-
-            // drive.straight(250.0); // Move another cell
-            // Serial.print("Distance traveled: ");
-            // Serial.println(drive.getOdometry().getCurrentTotalDistance());
-            // Serial.print("Heading: ");
-            // Serial.println(drive.getOdometry().getCurrentHeading());
->>>>>>> Stashed changes:micromouse3100/micromouse3100.ino
+        // drive.straight(250.0); // Move another cell
+        // Serial.print("Distance traveled: ");
+        // Serial.println(drive.getOdometry().getCurrentTotalDistance());
+        // Serial.print("Heading: ");
+        // Serial.println(drive.getOdometry().getCurrentHeading());
         c_cmd = 1;
     }
 
