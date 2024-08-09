@@ -191,7 +191,7 @@ public:
       motorL.setPWM(-controllerLRot.compute(mpu.getAngleZ()) + adjustment);
       motorR.setPWM(controllerRRot.compute(mpu.getAngleZ()) + adjustment);
 
-      Serial.println(controllerLRot.getError());
+      // Serial.println(controllerLRot.getError());
       // Serial.println(controllerR.getError());
 
       // int leftWallDist = lidar1.readRangeSingleMillimeters();
@@ -266,6 +266,40 @@ public:
       }
       if (i < simplified_cmd.length() - 1) {
         delay(600);
+      }
+    }
+  }
+
+  void precise_command(String cmd) {
+    int current_command = 0;
+    while (current_command < cmd.length()) {
+      char action = cmd.charAt(current_command);
+      current_command++;
+
+      // Extract the number following the action
+      String numStr = "";
+      while (current_command < cmd.length() && isDigit(cmd.charAt(current_command))) {
+        numStr += cmd.charAt(current_command);
+        current_command++;
+      }
+      
+      int value = numStr.toInt(); // Convert string to integer
+
+      // Execute the commands based on the action and the extracted value
+      switch (action) {
+        case 'f':
+          straight(value);
+          break;
+        case 'l':
+          rotate(value);
+          break;
+        case 'r':
+          rotate(-value);
+          break;
+      }
+      
+      if (current_command < cmd.length()) {
+        delay(600); // Delay between commands
       }
     }
   }
