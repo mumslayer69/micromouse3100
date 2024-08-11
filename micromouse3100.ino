@@ -110,7 +110,17 @@ void loop() {
 
     if (!c_cmd) { //ini on line 42
         // drive.chain_move("frff");
-        drive.precise_command("f23r51f38l8f97r39f102l35f137r37f108r6f271l46f122r34f55l41f96r39f73l24f38r16f32r5f62l28f4");
+
+        // 1. BFS Path 1: 
+        drive.chain_move("frfflflffrff");
+
+        // 2. PRM + Dijksta Path:
+        drive.precise_command("l11f15r97f50l55f163l0f131l3f153r44f214r6f100l12f130r49f49l25f74l20f67r55f68l44f66r51f31");
+
+        // 3. BFS Path 2: 
+        drive.chain_move("flfffrflf");
+
+
         // drive.rotate(-90);
         // drive.rotate(-90);
         // drive.rotate(90);

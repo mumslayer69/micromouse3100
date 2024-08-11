@@ -162,7 +162,7 @@ public:
       if (abs(controllerL.getError()) < ERROR_MARGIN_STR || abs(controllerR.getError()) < ERROR_MARGIN_STR) break;
       if (frontWallDist < FRONT_LIDAR_HALT) break;
 
-      delay(50);
+      delay(100);
     }
 
     odometry.updatePosition(cells * CELL_LENGTH, odometry.getCurrentHeading());
