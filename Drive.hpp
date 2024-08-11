@@ -20,6 +20,7 @@
 #define ROBOT_RADIUS 52.8  // axle radius of robot
 
 // PID stats
+#define PID_SAMPLING_PERIOD 50 // PID Controller refreshes every 50 ms
 #define ERROR_MARGIN_STR 0.2  // stop controllers when wheel rotation error is reduced to ERROR_MARGIN radians
 #define ERROR_MARGIN_ROT 1.2
 #define MAX_OUTPUT 135  // maximum pwm output of each pid controller
@@ -36,7 +37,7 @@ mtrn3100::PIDController controllerR(90, 0, 2.5, MAX_OUTPUT);
 mtrn3100::PIDController controllerH(50, 0, 0, MAX_OUTPUT);
 
 mtrn3100::PIDController controllerLidar(25, 0, 4, MAX_OUTPUT);
-mtrn3100::PIDController controllerIMU(9, 0, 0.035, MAX_OUTPUT);
+mtrn3100::PIDController controllerIMU(7, 0, 0.035, MAX_OUTPUT);
 
 mtrn3100::PIDController controllerLRot(9, 0, 0.035, MAX_OUTPUT);
 mtrn3100::PIDController controllerRRot(9, 0, 0.035, MAX_OUTPUT);
@@ -94,7 +95,7 @@ public:
       // Serial.print(encoder.getRightRotation());
       // Serial.println();
 
-      delay(50);
+      delay(PID_SAMPLING_PERIOD);
 
       if (abs(controllerL.getError()) < ERROR_MARGIN_STR && abs(controllerR.getError()) < ERROR_MARGIN_STR) break;
     }
@@ -115,12 +116,16 @@ public:
 
     unsigned long timer = 0;
 
+    lidar1.startRangeContinuous(PID_SAMPLING_PERIOD);
+    lidar2.startRangeContinuous(PID_SAMPLING_PERIOD);
+    lidar3.startRangeContinuous(PID_SAMPLING_PERIOD);
+
     while (true) {
       mpu.update();
 
-      int leftWallDist = lidar1.readRangeSingleMillimeters();
-      int frontWallDist = lidar2.readRangeSingleMillimeters();
-      int rightWallDist = lidar3.readRangeSingleMillimeters();
+      int leftWallDist = lidar1.readRangeContinuousMillimeters();
+      int frontWallDist = lidar2.readRangeContinuousMillimeters();
+      int rightWallDist = lidar3.readRangeContinuousMillimeters();
 
       // 4 conditions. LR, L, R and no walls (driving blind).
       // When driving with walls, use wall to calibrate IMU heading.
@@ -168,6 +173,10 @@ public:
     odometry.updatePosition(cells * CELL_LENGTH, odometry.getCurrentHeading());
 
     // Serial.println("target reached!");
+    lidar1.stopContinuous();
+    lidar2.stopContinuous();
+    lidar3.stopContinuous();
+
     motorL.setPWM(0);
     motorR.setPWM(0);
   }
@@ -198,7 +207,7 @@ public:
       // int rightWallDist = lidar3.readRangeSingleMillimeters();
       // display.print(leftWallDist, frontWallDist, rightWallDist);
 
-      delay(50);
+      delay(PID_SAMPLING_PERIOD);
 
       if (abs(controllerLRot.getError()) < ERROR_MARGIN_ROT || abs(controllerRRot.getError()) < ERROR_MARGIN_ROT) break;
     }
@@ -226,7 +235,7 @@ public:
   //         motorR.setPWM(controllerRRot.compute(encoder.getRightRotation()) + adjustment);
   //         Serial.println(controllerLRot.getError());
   //         Serial.println(controllerRRot.getError());
-  //         delay(50);
+  //         delay(PID_SAMPLING_PERIOD);
 
   //         if (controllerLRot.getError() < ERROR_MARGIN_ROT && controllerRRot.getError() < ERROR_MARGIN_ROT) break;
   //     }
