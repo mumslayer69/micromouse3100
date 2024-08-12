@@ -7,6 +7,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <movingAvg.h>
 
 // #include "Display.hpp"
 #include "Motor.hpp"
@@ -20,10 +21,11 @@
 #define ROBOT_RADIUS 52.8  // axle radius of robot
 
 // PID stats
-#define PID_SAMPLING_PERIOD 50 // PID Controller refreshes every 50 ms
-#define ERROR_MARGIN_STR 0.2  // stop controllers when wheel rotation error is reduced to ERROR_MARGIN radians
+#define PID_SAMPLING_PERIOD 50  // PID Controller refreshes every 50 ms
+#define ERROR_MARGIN_STR 0.2    // stop controllers when wheel rotation error is reduced to ERROR_MARGIN radians
 #define ERROR_MARGIN_ROT 1.2
-#define MAX_OUTPUT 135  // maximum pwm output of each pid controller
+#define MAX_OUTPUT 150             // maximum pwm output of each pid controller
+#define LIDAR_SCALING_FACTOR 0.04  // scaled lidar output to be used as input to 'adjustment' PID controller
 
 // cell dimensions
 #define CELL_LENGTH 245.0      // distance between centres of cells
@@ -32,15 +34,17 @@
 #define NO_WALL_THRESHOLD 110  // if lidar value is above this, then assume there is no wall
 
 // TUNE PID CONTROLLERS HERE
-mtrn3100::PIDController controllerL(90, 0, 2.5, MAX_OUTPUT);
-mtrn3100::PIDController controllerR(90, 0, 2.5, MAX_OUTPUT);
+mtrn3100::PIDController controllerL(80, 0, 2.5, MAX_OUTPUT);
+mtrn3100::PIDController controllerR(80, 0, 2.5, MAX_OUTPUT);
 mtrn3100::PIDController controllerH(50, 0, 0, MAX_OUTPUT);
 
-mtrn3100::PIDController controllerLidar(25, 0, 4, MAX_OUTPUT);
-mtrn3100::PIDController controllerIMU(7, 0, 0.035, MAX_OUTPUT);
+mtrn3100::PIDController controllerLidar(25, 0, 4, MAX_OUTPUT / 2);
+mtrn3100::PIDController controllerIMU(7, 0, 0.035, MAX_OUTPUT / 2);
 
 mtrn3100::PIDController controllerLRot(9, 0, 0.035, MAX_OUTPUT);
 mtrn3100::PIDController controllerRRot(9, 0, 0.035, MAX_OUTPUT);
+
+movingAvg frontLidar(5);
 
 namespace mtrn3100 {
 class CellOdometry {
@@ -73,6 +77,7 @@ class Drive {
 public:
   Drive(mtrn3100::Motor motorL, mtrn3100::Motor motorR, mtrn3100::DualEncoder& encoder, MPU6050& mpu, VL6180X& lidar1, VL6180X& lidar2, VL6180X& lidar3, mtrn3100::Display& display)
     : motorL(motorL), motorR(motorR), encoder(encoder), mpu(mpu), lidar1(lidar1), lidar2(lidar2), lidar3(lidar3), display(display) {
+      frontLidar.begin();
   }
 
   // drive straight for a specified number of cells, only using encoders and PID.
@@ -86,14 +91,9 @@ public:
       mpu.update();
 
       int adjustment = controllerH.compute(encoder.getRightRotation() - encoder.getLeftRotation());  // find diff. in rotation between left and right wheel
-      motorL.setPWM(controllerL.compute(encoder.getLeftRotation()) - adjustment);                    // - adjustment
-      motorR.setPWM(controllerR.compute(encoder.getRightRotation()) + adjustment);                   //  + adjustment
+      motorL.setPWM(controllerL.compute((encoder.getLeftRotation())) - adjustment);                  // - adjustment
+      motorR.setPWM(controllerR.compute((encoder.getRightRotation())) + adjustment);                 //  + adjustment
       // encoder_odometry.update(encoder.getLeftRotation(),encoder.getRightRotation());
-
-      // Serial.print(encoder.getLeftRotation());
-      // Serial.print('\t');
-      // Serial.print(encoder.getRightRotation());
-      // Serial.println();
 
       delay(PID_SAMPLING_PERIOD);
 
@@ -113,6 +113,7 @@ public:
     controllerR.zeroAndSetTarget(encoder.getRightRotation(), dist2rot(cells * CELL_LENGTH));
     controllerLidar.zeroAndSetTarget(0, 0.0);
     controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
+    frontLidar.reset();
 
     unsigned long timer = 0;
 
@@ -123,8 +124,8 @@ public:
     while (true) {
       mpu.update();
 
+      frontLidar.reading(lidar2.readRangeContinuousMillimeters());
       int leftWallDist = lidar1.readRangeContinuousMillimeters();
-      int frontWallDist = lidar2.readRangeContinuousMillimeters();
       int rightWallDist = lidar3.readRangeContinuousMillimeters();
 
       // 4 conditions. LR, L, R and no walls (driving blind).
@@ -135,26 +136,22 @@ public:
       // walls on both sides
       if (leftWallDist < NO_WALL_THRESHOLD && rightWallDist < NO_WALL_THRESHOLD) {
         controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
-        adjustment = controllerLidar.compute((rightWallDist - leftWallDist) / 2 * 0.04);
-        // display.print("WW  WW");
+        adjustment = controllerLidar.compute((rightWallDist - leftWallDist) / 2 * LIDAR_SCALING_FACTOR);
       }
       // wall only on LEFT
       else if (leftWallDist < NO_WALL_THRESHOLD) {
         controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
-        adjustment = controllerLidar.compute((LIDAR_AVERAGE - leftWallDist) * 0.04);
-        // display.print("WW  __");
+        adjustment = controllerLidar.compute((LIDAR_AVERAGE - leftWallDist) * LIDAR_SCALING_FACTOR);
       }
       // wall only on RIGHT
       else if (rightWallDist < NO_WALL_THRESHOLD) {
         controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
-        adjustment = controllerLidar.compute((rightWallDist - LIDAR_AVERAGE) * 0.04);
-        // display.print("__  WW");
+        adjustment = controllerLidar.compute((rightWallDist - LIDAR_AVERAGE) * LIDAR_SCALING_FACTOR);
       }
       // no wall
       else {
         controllerLidar.zeroAndSetTarget(0, 0.0);
         adjustment = controllerIMU.compute(mpu.getAngleZ());
-        // display.print("__  __");
       }
 
       // int adjustment = controllerH.compute(encoder.getRightRotation() - encoder.getLeftRotation()); // find diff. in rotation between left and right wheel
@@ -162,10 +159,10 @@ public:
       motorR.setPWM(controllerR.compute(encoder.getRightRotation()) + adjustment);  //  + adjustment
       // encoder_odometry.update(encoder.getLeftRotation(),encoder.getRightRotation());
 
-      display.print(leftWallDist, frontWallDist, rightWallDist);
+      display.print(leftWallDist, frontLidar.getAvg(), rightWallDist);
 
       if (abs(controllerL.getError()) < ERROR_MARGIN_STR || abs(controllerR.getError()) < ERROR_MARGIN_STR) break;
-      if (frontWallDist < FRONT_LIDAR_HALT) break;
+      if (frontLidar.getAvg() < FRONT_LIDAR_HALT) break;
 
       delay(100);
     }
@@ -281,38 +278,38 @@ public:
   void precise_command(String cmd) {
     int current_command = 0;
     while (current_command < cmd.length()) {
-    char action = cmd.charAt(current_command);
-    current_command++;
+      char action = cmd.charAt(current_command);
+      current_command++;
 
-    // Extract the number following the action
-    String numStr = "";
-    while (current_command < cmd.length() && isDigit(cmd.charAt(current_command))) {
+      // Extract the number following the action
+      String numStr = "";
+      while (current_command < cmd.length() && isDigit(cmd.charAt(current_command))) {
         numStr += cmd.charAt(current_command);
         current_command++;
-    }
-    
-    int value = numStr.toInt(); // Convert string to integer
+      }
 
-    // Execute the commands based on the action and the extracted value
-    switch (action) {
+      int value = numStr.toInt();  // Convert string to integer
+
+      // Execute the commands based on the action and the extracted value
+      switch (action) {
         case 'f':
-        straightLidarless(value / CELL_LENGTH);
-        display.print("Forward: ");
-        break;
+          straightLidarless(value / CELL_LENGTH);
+          display.print("Forward: ");
+          break;
         case 'l':
-        rotate(value);
-        display.print("Left: ");
-        break;
+          rotate(value);
+          display.print("Left: ");
+          break;
         case 'r':
-        rotate(-value);
-        display.print("Right: ");
-        break;
-    }
-    
-    if (current_command < cmd.length()) {
-        delay(100); // Delay between commands
+          rotate(-value);
+          display.print("Right: ");
+          break;
+      }
+
+      if (current_command < cmd.length()) {
+        delay(100);  // Delay between commands
         display.print("hold");
-    }
+      }
     }
   }
 
