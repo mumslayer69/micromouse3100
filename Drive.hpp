@@ -22,8 +22,8 @@
 
 // PID stats
 #define PID_SAMPLING_PERIOD 50  // PID Controller refreshes every 50 ms
-#define ERROR_MARGIN_STR 0.2    // stop controllers when wheel rotation error is reduced to ERROR_MARGIN radians
-#define ERROR_MARGIN_ROT 1.2
+#define ERROR_MARGIN_STR 0.4    // stop controllers when wheel rotation error is reduced to ERROR_MARGIN radians
+#define ERROR_MARGIN_ROT 1.6
 #define MAX_OUTPUT 150             // maximum pwm output of each pid controller
 #define LIDAR_SCALING_FACTOR 0.04  // scaled lidar output to be used as input to 'adjustment' PID controller
 
