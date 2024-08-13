@@ -28,11 +28,11 @@
 #define LIDAR_SCALING_FACTOR 0.04  // scaled lidar output to be used as input to 'adjustment' PID controller
 
 // cell dimensions
-#define CELL_LENGTH 248.0      // distance between centres of cells
+#define CELL_LENGTH 250.0      // distance between centres of cells
 #define LIDAR_AVERAGE 82       // what the lidars should measure when the robot is centered in the cell
 #define FRONT_LIDAR_HALT 90    // halt robot if it gets this close to a front wall
 #define FRONT_LIDAR_DATAPOINTS 3 // front lidar is used with a moving avg. filter with this amount of datapoints
-#define NO_WALL_THRESHOLD 120  // if lidar value is above this, then assume there is no wall
+#define NO_WALL_THRESHOLD 100  // if lidar value is above this, then assume there is no wall
 
 // TUNE PID CONTROLLERS HERE
 mtrn3100::PIDController controllerL(80, 0, 2.5, MAX_OUTPUT);
