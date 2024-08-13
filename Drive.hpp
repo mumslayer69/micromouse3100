@@ -24,14 +24,14 @@
 #define PID_SAMPLING_PERIOD 50  // PID Controller refreshes every 50 ms
 #define ERROR_MARGIN_STR 0.2    // stop controllers when wheel rotation error is reduced to ERROR_MARGIN radians
 #define ERROR_MARGIN_ROT 1.2
-#define MAX_OUTPUT 150             // maximum pwm output of each pid controller
+#define MAX_OUTPUT 160             // maximum pwm output of each pid controller
 #define LIDAR_SCALING_FACTOR 0.04  // scaled lidar output to be used as input to 'adjustment' PID controller
 
 // cell dimensions
-#define CELL_LENGTH 245.0      // distance between centres of cells
+#define CELL_LENGTH 248.0      // distance between centres of cells
 #define LIDAR_AVERAGE 82       // what the lidars should measure when the robot is centered in the cell
 #define FRONT_LIDAR_HALT 90    // halt robot if it gets this close to a front wall
-#define NO_WALL_THRESHOLD 110  // if lidar value is above this, then assume there is no wall
+#define NO_WALL_THRESHOLD 120  // if lidar value is above this, then assume there is no wall
 
 // TUNE PID CONTROLLERS HERE
 mtrn3100::PIDController controllerL(80, 0, 2.5, MAX_OUTPUT);
@@ -270,7 +270,7 @@ public:
           break;
       }
       if (i < simplified_cmd.length() - 1) {
-        delay(600);
+        delay(100);
       }
     }
   }
@@ -307,7 +307,7 @@ public:
       }
 
       if (current_command < cmd.length()) {
-        delay(100);  // Delay between commands
+        delay(50);  // Delay between commands
         display.print("hold");
       }
     }

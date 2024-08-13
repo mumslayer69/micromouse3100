@@ -109,16 +109,15 @@ void setup() {
 void loop() {
 
   if (!c_cmd) {  //ini on line 42
-    // drive.chain_move("frfl");
 
     // 1. BFS Path 1:
-    drive.chain_move("lfffflflffrfflffrfrfffrf");
+    drive.chain_move("frflfflfrfrffrffffrff");
 
     // // 2. PRM + Dijksta Path:
-    // drive.precise_command("l11f15r97f50l55f163l0f131l3f153r44f214r6f100l12f130r49f49l25f74l20f67r55f68l44f66r51f31");
+    // drive.precise_command("l26f40r59f79r43f25r1f155r8f200l18f49r41f45l15f42r7f30l25f50r3f33l65f12r19f32r3f30l13f23l12f64l63f60r4f36l6f48r16f43r14f107l154f24r180");
 
     // // 3. BFS Path 2:
-    // drive.chain_move("flfffrflf");
+    // drive.chain_move("flff");
 
     c_cmd = 1;
   }
