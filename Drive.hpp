@@ -31,6 +31,7 @@
 #define CELL_LENGTH 248.0      // distance between centres of cells
 #define LIDAR_AVERAGE 82       // what the lidars should measure when the robot is centered in the cell
 #define FRONT_LIDAR_HALT 90    // halt robot if it gets this close to a front wall
+#define FRONT_LIDAR_DATAPOINTS 3 // front lidar is used with a moving avg. filter with this amount of datapoints
 #define NO_WALL_THRESHOLD 120  // if lidar value is above this, then assume there is no wall
 
 // TUNE PID CONTROLLERS HERE
@@ -44,7 +45,7 @@ mtrn3100::PIDController controllerIMU(7, 0, 0.035, MAX_OUTPUT / 2);
 mtrn3100::PIDController controllerLRot(9, 0, 0.035, MAX_OUTPUT);
 mtrn3100::PIDController controllerRRot(9, 0, 0.035, MAX_OUTPUT);
 
-movingAvg frontLidar(5);
+movingAvg frontLidarFilter(FRONT_LIDAR_DATAPOINTS);
 
 namespace mtrn3100 {
 class CellOdometry {
@@ -77,7 +78,7 @@ class Drive {
 public:
   Drive(mtrn3100::Motor motorL, mtrn3100::Motor motorR, mtrn3100::DualEncoder& encoder, MPU6050& mpu, VL6180X& lidar1, VL6180X& lidar2, VL6180X& lidar3, mtrn3100::Display& display)
     : motorL(motorL), motorR(motorR), encoder(encoder), mpu(mpu), lidar1(lidar1), lidar2(lidar2), lidar3(lidar3), display(display) {
-      frontLidar.begin();
+      frontLidarFilter.begin();
   }
 
   // drive straight for a specified number of cells, only using encoders and PID.
@@ -113,7 +114,7 @@ public:
     controllerR.zeroAndSetTarget(encoder.getRightRotation(), dist2rot(cells * CELL_LENGTH));
     controllerLidar.zeroAndSetTarget(0, 0.0);
     controllerIMU.zeroAndSetTarget(mpu.getAngleZ(), 0.0);
-    frontLidar.reset();
+    frontLidarFilter.reset();
 
     unsigned long timer = 0;
 
@@ -124,7 +125,7 @@ public:
     while (true) {
       mpu.update();
 
-      frontLidar.reading(lidar2.readRangeContinuousMillimeters());
+      frontLidarFilter.reading(lidar2.readRangeContinuousMillimeters());
       int leftWallDist = lidar1.readRangeContinuousMillimeters();
       int rightWallDist = lidar3.readRangeContinuousMillimeters();
 
@@ -159,10 +160,11 @@ public:
       motorR.setPWM(controllerR.compute(encoder.getRightRotation()) + adjustment);  //  + adjustment
       // encoder_odometry.update(encoder.getLeftRotation(),encoder.getRightRotation());
 
-      display.print(leftWallDist, frontLidar.getAvg(), rightWallDist);
+      int frontLidarAvg = frontLidarFilter.getCount() >= FRONT_LIDAR_DATAPOINTS ? frontLidarFilter.getAvg() : 255;
+      display.print(leftWallDist, frontLidarAvg, rightWallDist);
 
       if (abs(controllerL.getError()) < ERROR_MARGIN_STR || abs(controllerR.getError()) < ERROR_MARGIN_STR) break;
-      if (frontLidar.getAvg() < FRONT_LIDAR_HALT) break;
+      if (frontLidarAvg < FRONT_LIDAR_HALT) break;
 
       delay(100);
     }
@@ -170,6 +172,7 @@ public:
     odometry.updatePosition(cells * CELL_LENGTH, odometry.getCurrentHeading());
 
     // Serial.println("target reached!");
+    frontLidarFilter.reset();
     lidar1.stopContinuous();
     lidar2.stopContinuous();
     lidar3.stopContinuous();
