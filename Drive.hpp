@@ -24,7 +24,7 @@
 #define PID_SAMPLING_PERIOD 50  // PID Controller refreshes every 50 ms
 #define ERROR_MARGIN_STR 0.2    // stop controllers when wheel rotation error is reduced to ERROR_MARGIN radians
 #define ERROR_MARGIN_ROT 1.2
-#define MAX_OUTPUT 160             // maximum pwm output of each pid controller
+#define MAX_OUTPUT 150             // maximum pwm output of each pid controller
 #define LIDAR_SCALING_FACTOR 0.04  // scaled lidar output to be used as input to 'adjustment' PID controller
 
 // cell dimensions
@@ -39,8 +39,8 @@ mtrn3100::PIDController controllerL(80, 0, 2.5, MAX_OUTPUT);
 mtrn3100::PIDController controllerR(80, 0, 2.5, MAX_OUTPUT);
 mtrn3100::PIDController controllerH(50, 0, 0, MAX_OUTPUT);
 
-mtrn3100::PIDController controllerLidar(25, 0, 4, MAX_OUTPUT / 2);
-mtrn3100::PIDController controllerIMU(7, 0, 0.035, MAX_OUTPUT / 2);
+mtrn3100::PIDController controllerLidar(25, 0, 4, MAX_OUTPUT / 3);
+mtrn3100::PIDController controllerIMU(7, 0, 0.035, MAX_OUTPUT / 3);
 
 mtrn3100::PIDController controllerLRot(9, 0, 0.035, MAX_OUTPUT);
 mtrn3100::PIDController controllerRRot(9, 0, 0.035, MAX_OUTPUT);
