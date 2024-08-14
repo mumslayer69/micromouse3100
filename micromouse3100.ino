@@ -111,7 +111,7 @@ void loop() {
   if (!c_cmd) {  //ini on line 42
 
     // 1. BFS Path 1:
-    drive.chain_move("frflfflfrfrffrffffrff");
+    drive.chain_move("rrfrflfffrffrfflflffrffffrfffrflfrffffrflflfrf");
 
     // // 2. PRM + Dijksta Path:
     // drive.precise_command("l26f40r59f79r43f25r1f155r8f200l18f49r41f45l15f42r7f30l25f50r3f33l65f12r19f32r3f30l13f23l12f64l63f60r4f36l6f48r16f43r14f107l154f24r180");
